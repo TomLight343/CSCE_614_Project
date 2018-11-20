@@ -1,0 +1,56 @@
+Directory structure: This structure is following the parsec for gem5.
+
+parsec-2.1 
+    |_________ bin
+    |_________ include
+    |_________ lib
+    |_________ inputs
+                  |________ blackscholes
+                  |________ bodytrack
+                  |________ canneal
+                  |________ dedup
+                  |________ fluidanimate
+                  |________ freqmine
+                  |________ x264
+
+bin
+===
+Parsec 2.1 applications and kernels are statically built and put in the bin/
+directory. Except for freqmine's rtview and vips, they are not successfully
+built statically.
+
+
+include
+=======
+x264.h header file is placed in include/, which is needed for x264.
+
+
+lib
+===
+x264 related library archive and files are placed in lib/.
+
+
+# Note: no need to chaage or touch bin/ include/ and lib/.
+
+
+inputs
+======
+All the inputs of the applications and kernels are put in the input/
+directory. You need to download the input tar ball from parsec website:
+http://parsec.cs.princeton.edu/download/2.1/parsec-2.1-sim.tar.gz
+
+$ mkdir tmp; cd tmp
+$ wget http://parsec.cs.princeton.edu/download/2.1/parsec-2.1-sim.tar.gz
+$ tar xzvf parsec-2.1-sim.tar.gz
+
+Then you will get a parsec-2.1/ directory in tmp/. Inside this directories,
+the corresponding inputs for each applications are in
+pkgs/apps/${appname}/inputs or pkgs/kernels/${kernelname}/inputs. For each
+inputs dir, untar small medium and large tarball, and mv the uncompressed
+input files to coresponding inputs directory in the above structure.
+
+$ tar xvf input_simsmall.tar
+
+# Node: for dedup, small medium and large tar ball all have the same
+# media.data file. Untar them one by one, and rename them to be medias.dat,
+# mediam.dat and medial.dat.

@@ -1,0 +1,30 @@
+Directory structures:
+
+spec_cpu2006
+    |_________ bin
+    |_________ data
+                |________ bzip2
+                |________ cactusADM
+                |________ calculix
+                |________ gcc
+                |________ hmmer
+                |________ lbm
+                |________ leslie3d
+                |________ mcf
+                |________ milc
+                |________ namd
+                |________ sjeng
+                |________ soplex
+                |________ xalan
+
+bin
+===
+SPEC CPU2006 benchmarks are statically compiled and put under bin/ directory.
+
+data
+====
+All ref inputs of the benchmarks are put under data/ directory.
+
+IMPORTANT NOTE
+==============
+These compiled SPEC benchmarks are only used for CSCE 614 course only. You are NOT allowed to distribute these benchmarks or use for other purposes. If you want to use it for further research on computer systems, please contact the instructor.
