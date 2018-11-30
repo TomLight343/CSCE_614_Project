@@ -3,6 +3,8 @@
 
 #include "repl_policies.h"
 #define LOOK_BACK_RANGE 8
+#define MAX_RPV 7
+#define FRIENDLY_MIN 4
 
 // Hawkeye
 class HawkeyeReplPolicy : public ReplPolicy {
@@ -18,6 +20,8 @@ class HawkeyeReplPolicy : public ReplPolicy {
         }OccupancyVector;
 
         OccupancyVector *_occupancyVector;
+
+	uint32_t *rpvArray;
 
         const uint32_t numLines;
         const uint32_t numWays;
@@ -40,6 +44,9 @@ class HawkeyeReplPolicy : public ReplPolicy {
             for(int i = 0; i < numWays; i++){
                 _occupancyVector[i]._setOccupancyVector = gm_calloc<SetOccupancyVector>(sizeOfSetOccupancyVector);
             }
+		// Initialize RRIP array for cache replacement
+		rpvArray = gm_calloc<uint32_t>(numLines);
+		for (uint32_t i = 0; i < numLines; i++) {array[i] = MAX_RPV;}
         }
 
         ~HawkeyeReplPolicy(){
@@ -58,7 +65,17 @@ class HawkeyeReplPolicy : public ReplPolicy {
         }
 
         template <typename C> uint32_t rank(const MemReq* req, C cands) {
-            // rank method
+		uint32_t oldestRpvIndex = *(cands.begin()); // Needed if no block has the maximum RRIP value
+		uint32_t oldestRpvEncountered = rpvArray[oldestRpvIndex];
+		for (auto ci = cands.begin(); ci != cands.end(); ci.inc()) {
+			if (rpvArray[*ci] == MAX_RPV) {return *ci;}
+			else if (rpvArray[*ci] > oldestRpvEncountered) {
+				oldestRpvIndex = *ci;
+				oldestRpvEncountered = rpvArray[*ci];
+			}
+            	}
+
+		return oldestRpvIndex;
         }
         //DECL_RANK_BINDINGS;
 
