@@ -4,7 +4,8 @@
 #include "repl_policies.h"
 #define LOOK_BACK_RANGE 8
 #define MAX_RPV 7
-#define FRIENDLY_MIN 4
+#define MAX_HAWK_VAL 7
+#define CACHE_FRIENDLY_MIN 4
 
 // Hawkeye
 class HawkeyeReplPolicy : public ReplPolicy {
@@ -21,7 +22,8 @@ class HawkeyeReplPolicy : public ReplPolicy {
 
         OccupancyVector *_occupancyVector;
 
-	uint32_t *rpvArray;
+	uint32_t* rpvArray;
+	bool* recentlyAdded;
 
         const uint32_t numLines;
         const uint32_t numWays;
@@ -46,7 +48,15 @@ class HawkeyeReplPolicy : public ReplPolicy {
             }
 		// Initialize RRIP array for cache replacement
 		rpvArray = gm_calloc<uint32_t>(numLines);
-		for (uint32_t i = 0; i < numLines; i++) {array[i] = MAX_RPV;}
+		for (uint32_t i = 0; i < numLines; i++) {rpvArray[i] = MAX_RPV;}
+
+		// Array that tracks whether or not a given block was only just recently put in cache
+		recentlyAdded = gm_calloc<bool>(numLines);
+		for (uint32_t j = 0; j < numLines; j++) {recentlyAdded[j] = false;}
+
+		// Initialize Hawkeye Predictor array
+		hawkeyePredictor = gm_calloc<uint32_t>(numLines);
+		for (uint32_t i = 0; i < numLines; i++) {array[i] = 0;}
         }
 
         ~HawkeyeReplPolicy(){
@@ -57,11 +67,27 @@ class HawkeyeReplPolicy : public ReplPolicy {
         }
 
         void update(uint32_t id, const MemReq* req) {
-            // update method
+		if (updateOptGen(req)) {
+			if (hawkeyePredictor[id] != MAX_HAWK_VAL) {hawkeyePredictor[id]++;}
+		}
+		else {
+			if (hawkeyePredictor[id] != 0) {hawkeyePredictor[id]--;}
+		}
+
+		if (hawkeyePredictor[id] >= CACHE_FRIENDLY_MIN) {
+			rpvArray[id] = 0;
+			if (recentlyAdded[id]) {
+				recentlyAdded[id] = false;
+				for (uint32_t i = 0; i < numLines; i++) {if (i != id) {rpvArray[i]++;}}
+			}
+		}
+		else {
+			rpvArray[id] = 7;
+		}
         }
 
         void replaced(uint32_t id) {
-            // replaced method
+            recentlyAdded[id] = true;
         }
 
         template <typename C> uint32_t rank(const MemReq* req, C cands) {
