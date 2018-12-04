@@ -23,6 +23,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
         OccupancyVector *_occupancyVector;
 
 	uint32_t* rpvArray;
+	uint32_t* hawkeyePredictor;
 	bool* recentlyAdded;
 
         const uint32_t numLines;
@@ -43,7 +44,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
             sizeOfSetOccupancyVector(numWays*LOOK_BACK_RANGE)
         {
             _occupancyVector = gm_calloc<OccupancyVector>(numWays);
-            for(int i = 0; i < numWays; i++){
+            for(uint32_t i = 0; i < numWays; i++){
                 _occupancyVector[i]._setOccupancyVector = gm_calloc<SetOccupancyVector>(sizeOfSetOccupancyVector);
             }
 		// Initialize RRIP array for cache replacement
@@ -56,11 +57,11 @@ class HawkeyeReplPolicy : public ReplPolicy {
 
 		// Initialize Hawkeye Predictor array
 		hawkeyePredictor = gm_calloc<uint32_t>(numLines);
-		for (uint32_t i = 0; i < numLines; i++) {array[i] = 0;}
+		for (uint32_t i = 0; i < numLines; i++) {hawkeyePredictor[i] = 0;}
         }
 
         ~HawkeyeReplPolicy(){
-            for(int i = 0; i < numWays; i++){
+            for(uint32_t i = 0; i < numWays; i++){
                 gm_free(_occupancyVector[i]._setOccupancyVector);
             }
             gm_free(_occupancyVector);
@@ -118,7 +119,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
             uint32_t end,
             uint32_t maxSize
         ){
-            for(int i = end; i != (end+1); i--){
+            for(uint32_t i = end; i != (end+1); i--){
                 // underflow condition
                 if(i == 0){
                     i = maxSize-1;
@@ -136,7 +137,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
             uint32_t numWays,
             uint32_t maxSize
         ){
-            for(int i = start; i != end; i++){
+            for(uint32_t i = start; i != end; i++){
                 // overflow condition
                 if (i == maxSize){
                     i = 0;
@@ -153,7 +154,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
             uint32_t end,
             uint32_t maxSize
         ){
-            for(int i = start; i != end; i++){
+            for(uint32_t i = start; i != end; i++){
                 // overflow condition
                 if(i == maxSize){
                     i = 0;
@@ -162,7 +163,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
             }
         }
         bool updateOptGen(const MemReq* req){
-            bool returnState;
+            bool returnState = false;
             uint32_t set = getCacheSet(req);
             Address searchAddress = getSearchAddress(req);
             int64_t lastIndexOfSearchAddress = getLastIndexOf(
@@ -208,5 +209,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
 
             return returnState;
         }
+
+        DECL_RANK_BINDINGS;
 };
 #endif // HAWKEYE_REPL_H_
