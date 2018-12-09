@@ -47,12 +47,12 @@ uint64_t SimpleCore::getPhaseCycles() const {
     return curCycle % zinfo->phaseLength;
 }
 
-void SimpleCore::load(Address addr) {
-    curCycle = l1d->load(addr, curCycle);
+void SimpleCore::load(Address addr, Address pc) {
+    curCycle = l1d->load(addr, curCycle, pc);
 }
 
-void SimpleCore::store(Address addr) {
-    curCycle = l1d->store(addr, curCycle);
+void SimpleCore::store(Address addr, Address pc) {
+    curCycle = l1d->store(addr, curCycle, pc);
 }
 
 void SimpleCore::bbl(Address bblAddr, BblInfo* bblInfo) {
@@ -63,7 +63,7 @@ void SimpleCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 
     Address endBblAddr = bblAddr + bblInfo->bytes;
     for (Address fetchAddr = bblAddr; fetchAddr < endBblAddr; fetchAddr+=(1 << lineBits)) {
-        curCycle = l1i->load(fetchAddr, curCycle);
+        curCycle = l1i->load(fetchAddr, curCycle, 0 /* useless */);
     }
 }
 
@@ -92,20 +92,20 @@ InstrFuncPtrs SimpleCore::GetFuncPtrs() {
     return {LoadFunc, StoreFunc, BblFunc, BranchFunc, PredLoadFunc, PredStoreFunc, FPTR_ANALYSIS, {0}};
 }
 
-void SimpleCore::LoadFunc(THREADID tid, ADDRINT addr) {
-    static_cast<SimpleCore*>(cores[tid])->load(addr);
+void SimpleCore::LoadFunc(THREADID tid, ADDRINT loadPc, ADDRINT addr) {
+    static_cast<SimpleCore*>(cores[tid])->load(addr, loadPc);
 }
 
-void SimpleCore::StoreFunc(THREADID tid, ADDRINT addr) {
-    static_cast<SimpleCore*>(cores[tid])->store(addr);
+void SimpleCore::StoreFunc(THREADID tid, ADDRINT storePc, ADDRINT addr) {
+    static_cast<SimpleCore*>(cores[tid])->store(addr, storePc);
 }
 
-void SimpleCore::PredLoadFunc(THREADID tid, ADDRINT addr, BOOL pred) {
-    if (pred) static_cast<SimpleCore*>(cores[tid])->load(addr);
+void SimpleCore::PredLoadFunc(THREADID tid, ADDRINT predLoadPc, ADDRINT addr, BOOL pred) {
+    if (pred) static_cast<SimpleCore*>(cores[tid])->load(addr, predLoadPc);
 }
 
-void SimpleCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
-    if (pred) static_cast<SimpleCore*>(cores[tid])->store(addr);
+void SimpleCore::PredStoreFunc(THREADID tid, ADDRINT predStorePc, ADDRINT addr, BOOL pred) {
+    if (pred) static_cast<SimpleCore*>(cores[tid])->store(addr, predStorePc);
 }
 
 void SimpleCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {

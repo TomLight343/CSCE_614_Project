@@ -53,11 +53,11 @@ class NullCore : public Core {
     protected:
         inline void bbl(BblInfo* bblInstrs);
 
-        static void LoadFunc(THREADID tid, ADDRINT addr);
-        static void StoreFunc(THREADID tid, ADDRINT addr);
+        static void LoadFunc(THREADID tid, ADDRINT loadPc, ADDRINT addr);
+        static void StoreFunc(THREADID tid, ADDRINT storePc, ADDRINT addr);
         static void BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo);
-        static void PredLoadFunc(THREADID tid, ADDRINT addr, BOOL pred);
-        static void PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred);
+        static void PredLoadFunc(THREADID tid, ADDRINT predLoadPc, ADDRINT addr, BOOL pred);
+        static void PredStoreFunc(THREADID tid, ADDRINT predStorePc, ADDRINT addr, BOOL pred);
 
         static void BranchFunc(THREADID, ADDRINT, BOOL, ADDRINT, ADDRINT) {}
 } ATTR_LINE_ALIGNED; //This needs to take up a whole cache line, or false sharing will be extremely frequent

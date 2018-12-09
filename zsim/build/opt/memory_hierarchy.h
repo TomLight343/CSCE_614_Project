@@ -100,6 +100,9 @@ struct MemReq {
     };
     uint32_t flags;
 
+    // Store the PC value of req
+    Address pc;
+
     inline void set(Flag f) {flags |= f;}
     inline bool is (Flag f) const {return flags & f;}
 };

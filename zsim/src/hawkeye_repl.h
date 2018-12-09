@@ -6,6 +6,7 @@
 #define MAX_RPV 7
 #define MAX_HAWK_VAL 7
 #define CACHE_FRIENDLY_MIN 4
+#define HASH_SIZE 8192
 
 // Hawkeye
 class HawkeyeReplPolicy : public ReplPolicy {
@@ -23,8 +24,9 @@ class HawkeyeReplPolicy : public ReplPolicy {
         OccupancyVector *_occupancyVector;
 
 	uint32_t* rpvArray;
-	uint32_t* hawkeyePredictor;
+	uint8_t* hawkeyePredictor;
 	bool* recentlyAdded;
+        hash<Address> addr_hash;
 
         const uint32_t numLines;
         const uint32_t numWays;
@@ -56,8 +58,8 @@ class HawkeyeReplPolicy : public ReplPolicy {
 		for (uint32_t j = 0; j < numLines; j++) {recentlyAdded[j] = false;}
 
 		// Initialize Hawkeye Predictor array
-		hawkeyePredictor = gm_calloc<uint32_t>(numLines);
-		for (uint32_t i = 0; i < numLines; i++) {hawkeyePredictor[i] = 0;}
+		hawkeyePredictor = gm_calloc<uint8_t>(HASH_SIZE);
+		for (uint32_t i = 0; i < HASH_SIZE; i++) {hawkeyePredictor[i] = 0;}
         }
 
         ~HawkeyeReplPolicy(){
@@ -68,11 +70,13 @@ class HawkeyeReplPolicy : public ReplPolicy {
         }
 
         void update(uint32_t id, const MemReq* req) {
+		Address hashedPc = (Address) ((unsigned long) addr_hash(req->pc) % HASH_SIZE);
+		// If cache friendly increment hawkeyePredictor for that PC; else, decrement
 		if (updateOptGen(req)) {
-			if (hawkeyePredictor[id] != MAX_HAWK_VAL) {hawkeyePredictor[id]++;}
+			if (hawkeyePredictor[hashedPc] != MAX_HAWK_VAL) {hawkeyePredictor[id]++;}
 		}
 		else {
-			if (hawkeyePredictor[id] != 0) {hawkeyePredictor[id]--;}
+			if (hawkeyePredictor[hashedPc] != 0) {hawkeyePredictor[id]--;}
 		}
 
 		if (hawkeyePredictor[id] >= CACHE_FRIENDLY_MIN) {
@@ -83,7 +87,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
 			}
 		}
 		else {
-			rpvArray[id] = 7;
+			rpvArray[id] = MAX_RPV;
 		}
         }
 

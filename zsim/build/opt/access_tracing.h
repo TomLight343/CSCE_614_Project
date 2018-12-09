@@ -37,6 +37,7 @@ struct AccessRecord {
     uint32_t latency;
     uint32_t childId;
     AccessType type;
+    Address pc; // load or store PC, 0 for instruction access
 };
 
 struct PackedAccessRecord {
@@ -45,6 +46,7 @@ struct PackedAccessRecord {
     uint32_t latency;
     uint16_t childId;
     uint16_t type;  // could be uint8_t, but causes corruption in HDF5? (wtf...)
+    Address pc; // load or store PC, 0 for instruction access
 } /*__attribute__((packed))*/;  // 24 bytes --> no packing needed
 
 

@@ -134,6 +134,7 @@ void TraceDriver::executeAccess(AccessRecord acc) {
                 std::unordered_map<Address, MESIState>::iterator it = cStore.find(acc.lineAddr);
                 if (it == cStore.end()) return; //we don't currently have this line, skip
                 MemReq req = {acc.lineAddr, acc.type, acc.childId, &it->second, acc.reqCycle, nullptr, it->second, acc.childId};
+                req.pc = acc.pc;
                 lat = parent->access(req) - acc.reqCycle; //note that PUT latency does not affect driver latency
                 assert(it->second == I);
                 cStore.erase(it);
@@ -148,6 +149,7 @@ void TraceDriver::executeAccess(AccessRecord acc) {
                     if (!((it->second == S) && (acc.type == GETX))) { //we have the line, and it's not an upgrade miss, we can't replay this access directly
                         if (playAllGets) { //issue a PUT
                             MemReq req = {acc.lineAddr, (it->second == M)? PUTX : PUTS, acc.childId, &it->second, acc.reqCycle, nullptr, it->second, acc.childId};
+                            req.pc = acc.pc;
                             parent->access(req);
                             assert(it->second == I);
                         } else {
@@ -158,6 +160,7 @@ void TraceDriver::executeAccess(AccessRecord acc) {
                     }
                 }
                 MemReq req = {acc.lineAddr, acc.type, acc.childId, &state, acc.reqCycle, nullptr, state, acc.childId};
+                req.pc = acc.pc;
                 uint64_t respCycle = parent->access(req);
                 lat = respCycle - acc.reqCycle;
                 children[acc.childId].profLat.inc(lat);
