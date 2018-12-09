@@ -91,7 +91,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
                 }
             }
             else {
-                rpvArray[id] = 7;
+                rpvArray[id] = MAX_RPV;
             }
         }
 
