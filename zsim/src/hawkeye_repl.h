@@ -45,9 +45,12 @@ class HawkeyeReplPolicy : public ReplPolicy {
             numOfNonTagBits(numOffsetBits + numIndexBits),
             sizeOfSetOccupancyVector(numWays*LOOK_BACK_RANGE)
         {
-            _occupancyVector = gm_calloc<OccupancyVector>(numWays);
-            for(uint32_t i = 0; i < numWays; i++){
+            _occupancyVector = gm_calloc<OccupancyVector>(pow(2, numIndexBits));
+            for(uint32_t i = 0; i < pow(2, numIndexBits); i++){
                 _occupancyVector[i]._setOccupancyVector = gm_calloc<SetOccupancyVector>(sizeOfSetOccupancyVector);
+                for(uint32_t j = 0; j < sizeOfSetOccupancyVector; j++){
+                    _occupancyVector[i]._setOccupancyVector[j].address = (uint64_t)-1L;
+                }
             }
 		// Initialize RRIP array for cache replacement
 		rpvArray = gm_calloc<uint32_t>(numLines);
@@ -108,7 +111,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
 
 		return oldestRpvIndex;
         }
-        //DECL_RANK_BINDINGS;
+        DECL_RANK_BINDINGS;
 
     private:
         inline uint32_t getCacheSet(const MemReq* req){
@@ -123,15 +126,19 @@ class HawkeyeReplPolicy : public ReplPolicy {
             uint32_t end,
             uint32_t maxSize
         ){
-            for(uint32_t i = end; i != (end+1); i--){
-                // underflow condition
-                if(i == 0){
-                    i = maxSize-1;
-                }
-                if(_vector[i].address == address){
+            uint32_t finish = end+1;
+            uint32_t i = end;
+            // info("checking index");
+            if(finish >= maxSize) {finish = 0;}
+            while(true){
+                if(i==0){i = maxSize-1;}
+                if(i==finish){break;}
+                if(_vector[i].address==address){
                     return i;
                 }
+                i--;
             }
+            // info("index not found!");
             return -1;
         }
         inline bool isOptMiss(
@@ -141,15 +148,18 @@ class HawkeyeReplPolicy : public ReplPolicy {
             uint32_t numWays,
             uint32_t maxSize
         ){
-            for(uint32_t i = start; i != end; i++){
-                // overflow condition
-                if (i == maxSize){
-                    i = 0;
-                }
-                if(_vector[i].entry >= numWays){
+            // info("checking opt btw %u and %u", start, end);
+            uint32_t i = start;
+            while(true){
+                if (i == maxSize){i = 0;}
+                if (i == end){break;}
+                if (_vector[i].entry >= numWays){
+                    // info("opt miss!");
                     return true;
                 }
+                i++;
             }
+            // info("opt hit!");
             return false;
         }
         inline void updateStateOfOccupancyVector(
@@ -158,31 +168,33 @@ class HawkeyeReplPolicy : public ReplPolicy {
             uint32_t end,
             uint32_t maxSize
         ){
-            for(uint32_t i = start; i != end; i++){
-                // overflow condition
-                if(i == maxSize){
-                    i = 0;
-                }
+            // info("started vector update");
+            uint32_t i = start;
+            while(true){
+                if(i==maxSize){i=0;}
+                if(i==end){break;}
                 _vector[i].entry++;
+                i++;
             }
+            // info("finished vector update");
         }
         bool updateOptGen(const MemReq* req){
             bool returnState = false;
-            uint32_t set = getCacheSet(req);
+            uint32_t line = getCacheSet(req);
             Address searchAddress = getSearchAddress(req);
             int64_t lastIndexOfSearchAddress = getLastIndexOf(
-                _occupancyVector[set]._setOccupancyVector,
+                _occupancyVector[line]._setOccupancyVector,
                 searchAddress,
-                _occupancyVector[set].end,
+                _occupancyVector[line].end,
                 sizeOfSetOccupancyVector
             );
             // check if address in present in occupancy vector
             if(lastIndexOfSearchAddress > 0){
                 // check if address causes a miss condition
                 if(isOptMiss(
-                    _occupancyVector[set]._setOccupancyVector,
+                    _occupancyVector[line]._setOccupancyVector,
                     (uint32_t)lastIndexOfSearchAddress,
-                    _occupancyVector[set].end,
+                    _occupancyVector[line].end,
                     numWays,
                     sizeOfSetOccupancyVector
                     )
@@ -192,23 +204,23 @@ class HawkeyeReplPolicy : public ReplPolicy {
                 // if its a hit condition update each entry in occupancy vector
                 else{
                     updateStateOfOccupancyVector(
-                        _occupancyVector[set]._setOccupancyVector,
+                        _occupancyVector[line]._setOccupancyVector,
                         (uint32_t)lastIndexOfSearchAddress,
-                        _occupancyVector[set].end,
+                        _occupancyVector[line].end,
                         sizeOfSetOccupancyVector
                     );
                     returnState = true;
                 }
             }
             // add the new entry in occupancy vector
-            _occupancyVector[set]._setOccupancyVector[_occupancyVector[set].end].entry = 0;
-            _occupancyVector[set]._setOccupancyVector[_occupancyVector[set].end].address = searchAddress;
+            _occupancyVector[line]._setOccupancyVector[_occupancyVector[line].end].entry = 0;
+            _occupancyVector[line]._setOccupancyVector[_occupancyVector[line].end].address = searchAddress;
 
             // move the end index of occupancy vector
-            _occupancyVector[set].end++;
+            _occupancyVector[line].end++;
             // roll to start incase of overflow
-            if(_occupancyVector[set].end > sizeOfSetOccupancyVector){
-                _occupancyVector[set].end = 0;
+            if(_occupancyVector[line].end >= sizeOfSetOccupancyVector){
+                _occupancyVector[line].end = 0;
             }
 
             return returnState;

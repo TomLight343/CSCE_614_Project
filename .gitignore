@@ -1,4 +1,6 @@
 tools/
+benchmarks/
 build/
 outputs/
+*.log
 .sconsign.dblite
