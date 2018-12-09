@@ -87,7 +87,7 @@ class HawkeyeReplPolicy : public ReplPolicy {
 			}
 		}
 		else {
-			rpvArray[id] = MAX_RPV;
+			rpvArray[id] = 7;
 		}
         }
 
@@ -213,7 +213,5 @@ class HawkeyeReplPolicy : public ReplPolicy {
 
             return returnState;
         }
-
-        DECL_RANK_BINDINGS;
 };
 #endif // HAWKEYE_REPL_H_
