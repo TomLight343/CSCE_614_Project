@@ -2,6 +2,7 @@
 #define HAWKEYE_REPL_H_
 
 #include "repl_policies.h"
+
 #define LOOK_BACK_RANGE 8
 #define MAX_RPV 7
 #define MAX_HAWK_VAL 7
@@ -23,9 +24,9 @@ class HawkeyeReplPolicy : public ReplPolicy {
 
         OccupancyVector *_occupancyVector;
 
-	uint32_t* rpvArray;
-	uint8_t* hawkeyePredictor;
-	bool* recentlyAdded;
+        uint32_t* rpvArray;
+        uint8_t* hawkeyePredictor;
+        bool* recentlyAdded;
         hash<Address> addr_hash;
 
         const uint32_t numLines;
@@ -73,25 +74,25 @@ class HawkeyeReplPolicy : public ReplPolicy {
         }
 
         void update(uint32_t id, const MemReq* req) {
-		Address hashedPc = (Address) ((unsigned long) addr_hash(req->pc) % HASH_SIZE);
-		// If cache friendly increment hawkeyePredictor for that PC; else, decrement
-		if (updateOptGen(req)) {
-			if (hawkeyePredictor[hashedPc] != MAX_HAWK_VAL) {hawkeyePredictor[id]++;}
-		}
-		else {
-			if (hawkeyePredictor[hashedPc] != 0) {hawkeyePredictor[id]--;}
-		}
+            Address hashedPc = (Address) ((unsigned long) addr_hash(req->pc) % HASH_SIZE);
+            // If cache friendly increment hawkeyePredictor for that PC; else, decrement
+            if (updateOptGen(req)) {
+                if (hawkeyePredictor[hashedPc] != MAX_HAWK_VAL) {hawkeyePredictor[id]++;}
+            }
+            else {
+                if (hawkeyePredictor[hashedPc] != 0) {hawkeyePredictor[id]--;}
+            }
 
-		if (hawkeyePredictor[id] >= CACHE_FRIENDLY_MIN) {
-			rpvArray[id] = 0;
-			if (recentlyAdded[id]) {
-				recentlyAdded[id] = false;
-				for (uint32_t i = 0; i < numLines; i++) {if (i != id) {rpvArray[i]++;}}
-			}
-		}
-		else {
-			rpvArray[id] = 7;
-		}
+            if (hawkeyePredictor[id] >= CACHE_FRIENDLY_MIN) {
+                rpvArray[id] = 0;
+                if (recentlyAdded[id]) {
+                    recentlyAdded[id] = false;
+                    for (uint32_t i = 0; i < numLines; i++) {if (i != id) {rpvArray[i]++;}}
+                }
+            }
+            else {
+                rpvArray[id] = 7;
+            }
         }
 
         void replaced(uint32_t id) {
@@ -99,19 +100,18 @@ class HawkeyeReplPolicy : public ReplPolicy {
         }
 
         template <typename C> uint32_t rank(const MemReq* req, C cands) {
-		uint32_t oldestRpvIndex = *(cands.begin()); // Needed if no block has the maximum RRIP value
-		uint32_t oldestRpvEncountered = rpvArray[oldestRpvIndex];
-		for (auto ci = cands.begin(); ci != cands.end(); ci.inc()) {
-			if (rpvArray[*ci] == MAX_RPV) {return *ci;}
-			else if (rpvArray[*ci] > oldestRpvEncountered) {
-				oldestRpvIndex = *ci;
-				oldestRpvEncountered = rpvArray[*ci];
-			}
-            	}
-
-		return oldestRpvIndex;
+            uint32_t oldestRpvIndex = *(cands.begin()); // Needed if no block has the maximum RRIP value
+            uint32_t oldestRpvEncountered = rpvArray[oldestRpvIndex];
+            for (auto ci = cands.begin(); ci != cands.end(); ci.inc()) {
+                if (rpvArray[*ci] == MAX_RPV) {return *ci;}
+                else if (rpvArray[*ci] > oldestRpvEncountered) {
+                    oldestRpvIndex = *ci;
+                    oldestRpvEncountered = rpvArray[*ci];
+                }
+            }
+            return oldestRpvIndex;
         }
-        DECL_RANK_BINDINGS;
+    DECL_RANK_BINDINGS;
 
     private:
         inline uint32_t getCacheSet(const MemReq* req){
