@@ -77,13 +77,13 @@ class HawkeyeReplPolicy : public ReplPolicy {
             Address hashedPc = (Address) ((unsigned long) addr_hash(req->pc) % HASH_SIZE);
             // If cache friendly increment hawkeyePredictor for that PC; else, decrement
             if (updateOptGen(req)) {
-                if (hawkeyePredictor[hashedPc] != MAX_HAWK_VAL) {hawkeyePredictor[id]++;}
+                if (hawkeyePredictor[hashedPc] != MAX_HAWK_VAL) {hawkeyePredictor[hashedPc]++;}
             }
             else {
-                if (hawkeyePredictor[hashedPc] != 0) {hawkeyePredictor[id]--;}
+                if (hawkeyePredictor[hashedPc] != 0) {hawkeyePredictor[hashedPc]--;}
             }
 
-            if (hawkeyePredictor[id] >= CACHE_FRIENDLY_MIN) {
+            if (hawkeyePredictor[hashedPc] >= CACHE_FRIENDLY_MIN) {
                 rpvArray[id] = 0;
                 if (recentlyAdded[id]) {
                     recentlyAdded[id] = false;
